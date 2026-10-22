@@ -1,0 +1,47 @@
+_ > nanoagent.plugin.v0001.ManifestConfig:
+id: meeting-scheduler
+name: Meeting Scheduler
+version: 0.1.0
+status: ready
+spec: nanoagent.plugin/v0001
+
+runtime > nanoagent.plugin.v0001.RuntimeConfig:
+  type: mcp_stdio
+  command: [uv, run, --frozen, python, -m, plugin]
+
+permissions > nanoagent.plugin.v0001.PermissionsConfig:
+  network > nanoagent.plugin.v0001.NetworkConfig:
+    hosts: []
+  filesystem > nanoagent.plugin.v0001.FilesystemConfig:
+    write: [workspace]
+
+# One entry per contract.Tool; its input and output classes are contract.TOOLS's.
+tools > dict[contract.Tool, nanoagent.plugin.v0001.ToolConfig]:
+  get_week:
+    description: Show a week's meetings (attendees, hours, minimum room size, fixed day, the start hours open to all attendees, the rooms big enough, the meetings sharing an attendee), its three rooms and everyone's busy hours
+  save_schedule:
+    description: Check a schedule against every rule and refuse it with each broken rule listed, or save it with a receipt in the workspace and return its summary
+  pin_optimum:
+    description: Find by exhaustive search the most meetings a week's schedule can hold, with one such schedule; the task's answer key, never shown to the model
+
+# One entry per contract.Task; its input and output classes are contract.TASKS's.
+tasks > dict[contract.Task, nanoagent.plugin.v0001.TaskConfig]:
+  schedule-week:
+    description: Schedule as many of a week's meetings as the attendees' time, the rooms and the working hours allow
+    runner: agent
+    tools: [get_week, save_schedule]
+    reference: pin_optimum
+    instructions: |-
+      1. Call get_week once with the task's case.
+      2. Choose the meetings to hold and give each one placement {meeting, day, start, room}. The rules, exactly as save_schedule and the grader check them:
+         a. every placement names a meeting of the week, and each meeting is placed at most once; a meeting left out is simply not held;
+         b. a meeting runs its hours from start, starts at 9 or later and ends by 17 (start + hours <= 17);
+         c. a meeting with a day is held on that day;
+         d. its room's capacity is at least its min_capacity;
+         e. every attendee is free (not in busy) for every hour it runs;
+         f. two meetings that share an attendee (its clashes) never overlap: on the same day their hours have none in common;
+         g. two meetings in the same room never overlap.
+         Rules b to e hold exactly when start is one of the meeting's open hours on that day and room is one of its rooms.
+      3. Not every meeting fits: hold as many as possible. The grade is how many you hold out of the most any schedule can hold, full marks only at that most.
+      4. Call save_schedule with the case and your placements. If it refuses, it lists every broken rule: change only those placements and call it again.
+      5. Call submit with the summary this task's save_schedule returned (case, receipt, digest, scheduled), exactly as returned; a summary from an earlier task is refused.

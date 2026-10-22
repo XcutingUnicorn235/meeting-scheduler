@@ -1,0 +1,11 @@
+_ > nanoagent.plugin.v0001.ProductConfig:
+tagline: "Fit the most meetings into a crowded team week"
+summary: "Meeting Scheduler gives a model a team's week: 7 to 9 meetings, three rooms and everyone's busy hours, and asks it to hold as many meetings as the rules allow. Not every meeting fits, so it must choose which to give up. Every rule is checked in code, and the schedule is graded against the optimum found by exhaustive search, which the model never sees."
+highlights:
+  - "Every rule is checked by the tools, which list each broken one so the model can fix it"
+  - "Any optimal schedule earns full marks, not just one stored answer"
+  - "Weeks are rebuilt from their number by a seeded generator, the same on every machine"
+steps:
+  - "Ask for a week, from 0 to 999"
+  - "The model reads the meetings, rooms and busy hours, and places as many meetings as it can"
+  - "The verifier re-checks every rule and compares the count with the most any schedule can hold"
